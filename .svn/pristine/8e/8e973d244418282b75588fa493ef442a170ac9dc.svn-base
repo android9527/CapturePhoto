@@ -1,0 +1,15 @@
+package com.example.capturephoto;
+
+import android.content.Context;
+import android.widget.Toast;
+
+public class CusDialogs
+{
+    public static void showInputWaring(Context c, String content)
+    {
+        Toast t = Toast.makeText(c, content, Toast.LENGTH_LONG);
+        // t.setGravity(Gravity.CENTER, 0, 0);
+        t.show();
+        // Utility.popAlert(this, "提示", "事件来源不能为空！");
+    }
+}

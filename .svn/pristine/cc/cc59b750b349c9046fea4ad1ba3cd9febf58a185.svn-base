@@ -1,0 +1,91 @@
+package com.client.capturephoto.util;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.os.AsyncTask;
+import com.client.capturephoto.R;
+import com.client.capturephoto.R.string;
+
+public class ProgressAsyncTask extends AsyncTask<Object, String, Object>
+{
+    protected Exception error = null;
+    
+    protected Context mContext = null;
+    
+    protected String title = null;
+    
+    protected String message = null;
+    
+    protected ProgressDialog prgDialog = null;
+    
+    protected boolean isShow = true;
+    
+	public static ProgressAsyncTask create(Context context) {
+		return new ProgressAsyncTask(context);
+	}
+    
+    public ProgressAsyncTask(Context context)
+    {
+        super();
+        this.mContext = context;
+        this.message = context.getString(R.string.processing);
+    }
+    
+    public ProgressAsyncTask(Context context, boolean isShow)
+    {
+        super();
+        this.mContext = context;
+        this.message = context.getString(R.string.processing);
+        this.isShow = isShow;
+    }
+    
+    public ProgressAsyncTask(Context context, String title, String message)
+    {
+        super();
+        this.mContext = context;
+        this.title = title;
+        this.message = message;
+        
+    }
+    
+    protected void onPreExecute()
+    {
+        if (isShow)
+        {
+            prgDialog = new ProgressDialog(mContext);
+            //        prgDialog.setTitle(this.title);
+            prgDialog.setMessage(this.message);
+//            prgDialog.setCancelable(false);
+            prgDialog.show();
+            prgDialog.setOnCancelListener(new DialogInterface.OnCancelListener()
+            {
+                @Override
+                public void onCancel(DialogInterface dialog)
+                {
+                }
+            });
+        }
+        
+    }
+    
+    protected void onPostExecuteAutoDismiss(Object obj)
+    {
+        
+    }
+    
+    @Override
+    protected void onPostExecute(Object obj)
+    {
+        onPostExecuteAutoDismiss(obj);
+        if (prgDialog != null)
+            prgDialog.dismiss();
+    }
+    
+    @Override
+    protected Object doInBackground(Object... params)
+    {
+        return null;
+    }
+    
+}

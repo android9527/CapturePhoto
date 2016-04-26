@@ -1,0 +1,191 @@
+package com.example.capturephoto;
+
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
+
+public class Config extends BaseActivity implements View.OnClickListener
+{
+    
+    Spinner mSpinnerTran, mSpinnerNumber;
+    
+    public static final String DEFAULT_USER_NAME = "default_user_name";
+    
+    public static final String DEFAULT_PASSWORD = "default_password";
+    
+    public static final String DEFAULT_URL = "default_url";
+    
+    public static final String USER_NAME = "user_name";
+    
+    public static final String PASSWORD = "password";
+    
+    public static final String URL = "url";
+    
+    private static final String[] ARRAY_TRANS = { "原分辨率", "压缩上传" };
+    
+    private static final String[] ARRAY_NUMBER;
+    static
+    {
+        ARRAY_NUMBER = new String[10];
+        for (int i = 1; i <= 10; i++)
+        {
+            ARRAY_NUMBER[i - 1] = i + "";
+        }
+    }
+    
+    private Button btnOK, btnDefault, btnCancel;
+    
+    private EditText userName, password, url;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.config);
+        initSpinner();
+        initView();
+        initSP();
+        initData();
+    }
+    
+    private void initView()
+    {
+        userName = (EditText) findViewById(R.id.txtUsername);
+        password = (EditText) findViewById(R.id.txtPassword);
+        url = (EditText) findViewById(R.id.txtURL);
+        btnOK = (Button) findViewById(R.id.btnOK);
+        btnDefault = (Button) findViewById(R.id.btnDefault);
+        btnCancel = (Button) findViewById(R.id.btnCancel);
+        btnOK.setOnClickListener(this);
+        btnDefault.setOnClickListener(this);
+        btnCancel.setOnClickListener(this);
+    }
+    
+    private void initSP()
+    {
+        String defuserName = SPUtil.getInstance(Config.this)
+                .getString(DEFAULT_USER_NAME, "");
+        if (TextUtils.isEmpty(defuserName))
+        {
+            SPUtil.getInstance(this).save(DEFAULT_USER_NAME,
+                    getString(R.string.default_user_name));
+            SPUtil.getInstance(this).save(DEFAULT_PASSWORD,
+                    getString(R.string.default_password));
+            SPUtil.getInstance(this).save(DEFAULT_URL,
+                    getString(R.string.default_url));
+        }
+    }
+    
+    private void initSpinner()
+    {
+        mSpinnerTran = (Spinner) findViewById(R.id.spinner_tran);
+        mSpinnerNumber = (Spinner) findViewById(R.id.spinner_number);
+        
+        // 将可选内容与ArrayAdapter连接起来
+        ArrayAdapter adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, ARRAY_TRANS);
+        // 设置下拉列表的风格
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // 将adapter 添加到spinner中
+        mSpinnerTran.setAdapter(adapter);
+        
+        // 将可选内容与ArrayAdapter连接起来
+        ArrayAdapter adapterNumber = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, ARRAY_NUMBER);
+        // 设置下拉列表的风格
+        adapterNumber.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // 将adapter 添加到spinner中
+        mSpinnerNumber.setAdapter(adapterNumber);
+        
+    }
+    
+    @Override
+    public void onClick(View v)
+    {
+        switch (v.getId())
+        {
+            case R.id.btnOK:
+                if (check())
+                {
+                    saveSP();
+                }
+                break;
+            case R.id.btnDefault:
+                restoreSP();
+                initData();
+                break;
+            case R.id.btnCancel:
+                finish();
+                break;
+            
+            default:
+                break;
+        }
+    }
+    
+    private boolean check()
+    {
+        if (TextUtils.isEmpty(userName.getText()))
+        {
+            showToast(R.string.empty_user_name);
+            return false;
+        }
+        if (TextUtils.isEmpty(password.getText()))
+        {
+            showToast(R.string.empty_password);
+            return false;
+        }
+        
+        if (TextUtils.isEmpty(password.getText()))
+        {
+            showToast(R.string.empty_url);
+            return false;
+        }
+        return true;
+    }
+    
+    private void saveSP()
+    {
+        SPUtil.getInstance(this).save(USER_NAME,
+                userName.getText().toString().trim());
+        SPUtil.getInstance(this).save(PASSWORD,
+                password.getText().toString().trim());
+        SPUtil.getInstance(this).save(URL, url.getText().toString().trim());
+    }
+    
+    private void restoreSP()
+    {
+        SPUtil.getInstance(this).save(USER_NAME,
+                getString(R.string.default_user_name));
+        SPUtil.getInstance(this).save(PASSWORD,
+                getString(R.string.default_password));
+        SPUtil.getInstance(this).save(URL, getString(R.string.default_url));
+    }
+    
+    private void initData()
+    {
+        String userName = SPUtil.getInstance(Config.this).getString(USER_NAME,
+                "");
+        if (!TextUtils.isEmpty(userName))
+        {
+            this.userName.setText(userName);
+        }
+        
+        String password = SPUtil.getInstance(Config.this).getString(PASSWORD,
+                "");
+        if (!TextUtils.isEmpty(password))
+        {
+            this.password.setText(password);
+        }
+        
+        String url = SPUtil.getInstance(Config.this).getString(URL, "");
+        if (!TextUtils.isEmpty(url))
+        {
+            this.url.setText(url);
+        }
+    }
+}

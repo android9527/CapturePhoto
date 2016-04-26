@@ -1,0 +1,480 @@
+package com.example.capturephoto;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.Size;
+import android.media.CameraProfile;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+
+public class TackPictureActivity extends BaseActivity implements
+        SurfaceHolder.Callback
+{
+    
+    private String TAG = "TackPictureActivity";// ??
+    
+    private Button btnCapture;
+    
+    private SurfaceHolder mSurfaceHolder;
+    
+    private SurfaceView mSurfaceView01;
+    
+    @Override
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.take_picture);
+        initViews();
+        getSurfaceHolder();
+        // Make sure camera device is opened.
+        try
+        {
+            mCameraOpenThread.join();
+            mCameraOpenThread = null;
+            if (mOpenCameraFail)
+            {
+                Util.showErrorAndFinish(this, R.string.cannot_connect_camera);
+                return;
+            }
+            else if (mCameraDisabled)
+            {
+                Util.showErrorAndFinish(this, R.string.camera_disabled);
+                return;
+            }
+        }
+        catch (InterruptedException ex)
+        {
+            ex.printStackTrace();
+        }
+        
+        // Make sure preview is started.
+        try
+        {
+            mCameraPreviewThread.join();
+        }
+        catch (InterruptedException ex)
+        {
+            // ignore
+        }
+        mCameraPreviewThread = null;
+    }
+    
+    @Override
+    protected void onPause()
+    {
+        stopPreview();
+        // Close the camera now because other activities may need to use it.
+        closeCamera();
+        resetScreenOn();
+        super.onPause();
+    }
+    
+    @Override
+    public void onStop()
+    {
+        super.onStop();
+    }
+    
+    @Override
+    protected void onResume()
+    {
+        doOnResume();
+        keepScreenOnAwhile();
+        super.onResume();
+    }
+    
+    /* func:停止preview */
+    private void stopPreview()
+    {
+        if (mCameraDevice != null)
+        {
+            Log.v(TAG, "stopPreview");
+            mCameraDevice.cancelAutoFocus(); // Reset the focus.
+            mCameraDevice.stopPreview();
+        }
+    }
+    
+    private void takeAPicture()
+    {
+        if (mCameraDevice != null)
+        {
+            /* 调用takePicture()方法拍照 */
+            mCameraDevice.takePicture(null, null, jpegCallback);// 调用PictureCallback
+                                                         // interface的对象作为参数
+        }
+    }
+    
+    int test = 0;
+    private final PictureCallback jpegCallback = new PictureCallback()
+    {
+        public void onPictureTaken(byte[] _data, Camera _camera)
+        {
+            // 保存
+//            Bitmap bitmap = BitmapFactory.decodeByteArray(_data,
+//                    0,
+//                    _data.length);
+//            if (bitmap != null)
+//            {
+                File myCaptureFile = new File("/sdcard/test" + test ++ + ".jpg");
+                
+                try
+                {
+                    FileOutputStream fileOutputStream = new FileOutputStream(
+                            myCaptureFile);
+                    fileOutputStream.write(_data);
+                    fileOutputStream.close();
+                }
+                catch (IOException e1)
+                {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+                
+                startPreview();
+//                BufferedOutputStream bos = null;
+//                 try
+//                 {
+//                 bos = new BufferedOutputStream(new FileOutputStream(
+//                 myCaptureFile));
+//                 bitmap.compress(CompressFormat.JPEG, 80, bos);
+//                
+//                 Matrix matrix = new Matrix();
+//                 matrix.setRotate(mDisplayOrientation);
+//                 bitmap = Bitmap
+//                 .createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+//                 bitmap.getHeight(), matrix, true);
+//                 bos.close();
+//                 bitmap.recycle();
+//                 }
+//                 catch (FileNotFoundException e)
+//                 {
+//                 e.printStackTrace();
+//                 }
+//                 catch (IOException e)
+//                 {
+//                 e.printStackTrace();
+//                 }
+//            }
+        }
+    };
+    
+    /* get a fully initialized SurfaceHolder */
+    private void getSurfaceHolder()
+    {
+        mSurfaceHolder = mSurfaceView01.getHolder();
+        mSurfaceHolder.addCallback(this);
+    }
+    
+    /* func:宣告界面元件Button capture,FrameLayout frame */
+    private void initViews()
+    {
+        btnCapture = (Button) findViewById(R.id.takepicture);
+        /* 以SurfaceView作为相机Preview之用 */
+        mSurfaceView01 = (SurfaceView) findViewById(R.id.surfaceView);
+        btnCapture.setOnClickListener(new Button.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                takeAPicture();
+            }
+        });
+    }
+    
+    @Override
+    public void surfaceCreated(SurfaceHolder holder)
+    {
+//        camera.startPreview();
+    }
+    
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width,
+            int height)
+    {
+        // Make sure we have a surface in the holder before proceeding.
+        if (holder.getSurface() == null)
+        {
+            Log.d(TAG, "holder.getSurface() == null");
+            return;
+        }
+        
+        Log.v(TAG, "surfaceChanged. w=" + width + ". h=" + height);
+        
+        // We need to save the holder for later use, even when the mCameraDevice
+        // is null. This could happen if onResume() is invoked after this
+        // function.
+        mSurfaceHolder = holder;
+        
+        // The mCameraDevice will be null if it fails to connect to the camera
+        // hardware. In this case we will show a dialog and then finish the
+        // activity, so it's OK to ignore it.
+        if (mCameraDevice == null)
+            return;
+        
+     // Set preview display if the surface is being created. Preview was
+        // already started. Also restart the preview if display rotation has
+        // changed. Sometimes this happens when the device is held in portrait
+        // and camera app is opened. Rotation animation takes some time and
+        // display rotation in onCreate may not be what we want.
+            if (Util.getDisplayRotation(this) != mDisplayRotation) {
+                setDisplayOrientation();
+            }
+//            if (holder.isCreating()) {
+//                // Set preview display if the surface is being created and preview
+//                // was already started. That means preview display was set to null
+//                // and we need to set it now.
+//                setPreviewDisplay(holder);
+//            }
+            startPreview();
+//            camera.startPreview();
+    }
+    
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder)
+    {
+        stopPreview();
+        mSurfaceHolder = null;
+    }
+    
+    Camera mCameraDevice;
+    
+    private boolean mOpenCameraFail, mCameraDisabled;
+    
+    Thread mCameraOpenThread = new Thread(new Runnable()
+    {
+        public void run()
+        {
+            try
+            {
+                mCameraDevice = Util.openCamera(TackPictureActivity.this);
+                mParameters = mCameraDevice.getParameters();
+            }
+            catch (CameraHardwareException e)
+            {
+                mOpenCameraFail = true;
+            }
+            catch (CameraDisabledException e)
+            {
+                mCameraDisabled = true;
+            }
+        }
+    });
+    
+    Thread mCameraPreviewThread = new Thread(new Runnable()
+    {
+        public void run()
+        {
+            startPreview();
+        }
+    });
+    
+    private final CameraErrorCallback mErrorCallback = new CameraErrorCallback();
+    
+    Camera.Parameters mParameters;
+    
+    private void startPreview()
+    {
+        mCameraDevice.setErrorCallback(mErrorCallback);
+        
+        // If we're previewing already, stop the preview first (this will blank
+        // the screen).
+        setPreviewDisplay(mSurfaceHolder);
+        setDisplayOrientation();
+        
+        setCameraParameters();
+        // If the focus mode is continuous autofocus, call cancelAutoFocus to
+        // resume it because it may have been paused by autoFocus call.
+        if (Parameters.FOCUS_MODE_CONTINUOUS_PICTURE.equals(mParameters.getFocusMode()))
+        {
+            mCameraDevice.cancelAutoFocus();
+        }
+        
+        // Inform the mainthread to go on the UI initialization.
+        if (mCameraPreviewThread != null)
+        {
+            synchronized (mCameraPreviewThread)
+            {
+                mCameraPreviewThread.notify();
+            }
+        }
+        
+        try
+        {
+            Log.v(TAG, "startPreview");
+            mCameraDevice.startPreview();
+        }
+        catch (Throwable ex)
+        {
+            closeCamera();
+            throw new RuntimeException("startPreview failed", ex);
+        }
+        
+    }
+    
+    // We separate the parameters into several subsets, so we can update only
+    // the subsets actually need updating. The PREFERENCE set needs extra
+    // locking because the preference can be changed from GLThread as well.
+    private void setCameraParameters()
+    {
+        mParameters = mCameraDevice.getParameters();
+        updateCameraParametersPreference();
+        
+        mCameraDevice.setParameters(mParameters);
+    }
+    
+    public static boolean setCameraPictureSize(String candidate,
+            List<Size> supported, Parameters parameters)
+    {
+        int index = candidate.indexOf('x');
+        if (index == -1)
+            return false;
+        int width = Integer.parseInt(candidate.substring(0, index));
+        int height = Integer.parseInt(candidate.substring(index + 1));
+        for (Size size : supported)
+        {
+            if (size.width == width && size.height == height)
+            {
+                parameters.setPictureSize(width, height);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private void updateCameraParametersPreference()
+    {
+        mParameters.setPictureFormat(ImageFormat.JPEG);
+        mParameters.setRotation(mDisplayOrientation);
+        mParameters.setPictureSize(480, 320);
+        /* 指定preview的屏幕大小 */
+//        parameters.setPreviewSize(intScreenWidth, intScreenHeight)
+//        mParameters.setPreviewSize(320, 480);
+        Log.e(TAG, "===============================");
+        // Set picture size.
+//                String pictureSize = mPreferences.getString(
+//                        CameraSettings.KEY_PICTURE_SIZE, null);
+//                if (pictureSize == null) {
+                    CameraSettings.initialCameraPictureSize(this, mParameters);
+//                } else {
+//                    List<Size> supported = mParameters.getSupportedPictureSizes();
+//                    setCameraPictureSize(
+//                            pictureSize, supported, mParameters);
+//                }
+        
+        //        // Set the preview frame aspect ratio according to the picture size.
+                Size size = mParameters.getPictureSize();
+                
+                Log.e(TAG, "size.width = " + size.width + "  size.height = " + size.height);
+        //
+        //        // Set a preview size that is closest to the viewfinder height and has
+        //        // the right aspect ratio.
+        //        List<Size> sizes = mParameters.getSupportedPreviewSizes();
+        //        Size optimalSize = Util.getOptimalPreviewSize(this,
+        //                sizes, (double) size.width / size.height);
+        //        Size original = mParameters.getPreviewSize();
+        //        if (!original.equals(optimalSize)) {
+        //            mParameters.setPreviewSize(optimalSize.width, optimalSize.height);
+        //
+        //            // Zoom related settings will be changed for different preview
+        //            // sizes, so set and read the parameters to get lastest values
+        //            mCameraDevice.setParameters(mParameters);
+        //            mParameters = mCameraDevice.getParameters();
+        //        }
+        //        Log.v(TAG, "Preview size is " + optimalSize.width + "x" + optimalSize.height);
+        //
+        //
+        //        // Set JPEG quality.
+        int jpegQuality = CameraProfile.getJpegEncodingQualityParameter(CameraProfile.QUALITY_HIGH);
+                mParameters.setJpegQuality(jpegQuality);
+    }
+    
+    // The display rotation in degrees. This is only valid when mCameraState is
+    // not PREVIEW_STOPPED.
+    private int mDisplayRotation;
+    
+    // The value for android.hardware.Camera.setDisplayOrientation.
+    private int mDisplayOrientation;
+    
+    private void setDisplayOrientation()
+    {
+        mDisplayRotation = Util.getDisplayRotation(this);
+        mDisplayOrientation = Util.getDisplayOrientation(mDisplayRotation);
+        mCameraDevice.setDisplayOrientation(mDisplayOrientation);
+    }
+    
+    private void setPreviewDisplay(SurfaceHolder holder)
+    {
+        try
+        {
+            mCameraDevice.setPreviewDisplay(holder);
+        }
+        catch (Throwable ex)
+        {
+            closeCamera();
+            throw new RuntimeException("setPreviewDisplay failed", ex);
+        }
+    }
+    
+    private void keepScreenOnAwhile()
+    {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+    
+    private void resetScreenOn()
+    {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+    
+    private void closeCamera()
+    {
+        if (mCameraDevice != null)
+        {
+            CameraHolder.instance().release();
+//            mCameraDevice.setZoomChangeListener(null);
+//            mCameraDevice.setFaceDetectionListener(null);
+//            mCameraDevice.setErrorCallback(null);
+            mCameraDevice = null;
+        }
+    }
+    
+    protected void doOnResume()
+    {
+        if (mOpenCameraFail || mCameraDisabled)
+            return;
+        
+        // Start the preview if it is not started.
+        try
+        {
+            mCameraDevice = Util.openCamera(this);
+            startPreview();
+        }
+        catch (CameraHardwareException e)
+        {
+            Util.showErrorAndFinish(this, R.string.cannot_connect_camera);
+            return;
+        }
+        catch (CameraDisabledException e)
+        {
+            Util.showErrorAndFinish(this, R.string.camera_disabled);
+            return;
+        }
+    }
+}

@@ -1,0 +1,96 @@
+package com.example.capturephoto;
+
+import android.graphics.Bitmap;
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ImageInfo implements Parcelable {
+
+	private String imageName;
+	private String imagePath;
+	private Bitmap bitmap;
+	private String fullName;
+	private String imageUri;
+
+	public ImageInfo() {
+	};
+
+	public ImageInfo(Parcel source) {
+
+		imageName = source.readString();
+		imagePath = source.readString();
+		// bitmap = source.readParcelable(null); // 这个地方可以为null
+
+	}
+
+	public String getImageUri() {
+		return imageUri;
+	}
+
+	public void setImageUri(String imageUri) {
+		this.imageUri = imageUri;
+	}
+
+	public String getFullName() {
+		return fullName;
+	}
+
+	public void setFullName(String fullName) {
+		this.fullName = fullName;
+	}
+
+	public String getImageName() {
+		return imageName;
+	}
+
+	public void setImageName(String imageName) {
+		this.imageName = imageName;
+	}
+
+	public String getImagePath() {
+		return imagePath;
+	}
+
+	public void setImagePath(String imagePath) {
+		this.imagePath = imagePath;
+	}
+
+	public Bitmap getBitmap() {
+		return bitmap;
+	}
+
+	public void setBitmap(Bitmap bitmap) {
+		this.bitmap = bitmap;
+	}
+
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		// TODO Auto-generated method stub
+		dest.writeString(imageName);
+		dest.writeString(imagePath);
+		// dest.writeParcelable(bitmap, flags);
+
+	}
+
+	public static final Parcelable.Creator<ImageInfo> CREATOR = new Parcelable.Creator<ImageInfo>() {
+		// 重写Creator
+
+		@Override
+		public ImageInfo createFromParcel(Parcel source) {
+			return new ImageInfo(source);
+		}
+
+		@Override
+		public ImageInfo[] newArray(int size) {
+			// TODO Auto-generated method stub
+			return new ImageInfo[size];
+		}
+	};
+
+}

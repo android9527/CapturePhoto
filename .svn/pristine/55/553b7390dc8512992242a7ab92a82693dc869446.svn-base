@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) 2010-2011, The MiCode Open Source Community (www.micode.net)
+ *
+ * This file is part of FileExplorer.
+ *
+ * FileExplorer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * FileExplorer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with SwiFTP.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.client.capturephoto;
+
+import java.io.File;
+
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
+import android.os.Environment;
+import android.util.Log;
+
+public class Util {
+    private static final String LOG_TAG = "Util";
+
+    public static boolean isSDCardReady() {
+        return Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
+    }
+
+
+    public static String makePath(String path1, String path2) {
+        if (path1.endsWith(File.separator))
+            return path1 + path2;
+
+        return path1 + File.separator + path2;
+    }
+
+    public static String getSdDirectory() {
+        return Environment.getExternalStorageDirectory().getPath();
+    }
+
+    /*
+     * 采用了新的办法获取APK图标，之前的失败是因为android中存在的一个BUG,通过
+     * appInfo.publicSourceDir = apkPath;来修正这个问题，详情参见:
+     * http://code.google.com/p/android/issues/detail?id=9151
+     */
+    public static Drawable getApkIcon(Context context, String apkPath) {
+        PackageManager pm = context.getPackageManager();
+        PackageInfo info = pm.getPackageArchiveInfo(apkPath,
+                PackageManager.GET_ACTIVITIES);
+        if (info != null) {
+            ApplicationInfo appInfo = info.applicationInfo;
+            appInfo.sourceDir = apkPath;
+            appInfo.publicSourceDir = apkPath;
+            try {
+                return appInfo.loadIcon(pm);
+            } catch (OutOfMemoryError e) {
+                Log.e(LOG_TAG, e.toString());
+            }
+        }
+        return null;
+    }
+
+    // storage, G M K B
+    public static String convertStorage(long size) {
+        long kb = 1024;
+        long mb = kb * 1024;
+        long gb = mb * 1024;
+
+        if (size >= gb) {
+            return String.format("%.1f GB", (float) size / gb);
+        } else if (size >= mb) {
+            float f = (float) size / mb;
+            return String.format(f > 100 ? "%.0f MB" : "%.1f MB", f);
+        } else if (size >= kb) {
+            float f = (float) size / kb;
+            return String.format(f > 100 ? "%.0f KB" : "%.1f KB", f);
+        } else
+            return String.format("%d B", size);
+    }
+
+    public static class SDCardInfo {
+        public long total;
+
+        public long free;
+    }
+
+    public static SDCardInfo getSDCardInfo() {
+        String sDcString = android.os.Environment.getExternalStorageState();
+
+        if (sDcString.equals(android.os.Environment.MEDIA_MOUNTED)) {
+            File pathFile = android.os.Environment.getExternalStorageDirectory();
+
+            try {
+                android.os.StatFs statfs = new android.os.StatFs(pathFile.getPath());
+
+                // 获取SDCard上BLOCK总数
+                long nTotalBlocks = statfs.getBlockCount();
+
+                // 获取SDCard上每个block的SIZE
+                long nBlocSize = statfs.getBlockSize();
+
+                // 获取可供程序使用的Block的数量
+                long nAvailaBlock = statfs.getAvailableBlocks();
+
+                // 获取剩下的所有Block的数量(包括预留的一般程序无法使用的块)
+                long nFreeBlock = statfs.getFreeBlocks();
+
+                SDCardInfo info = new SDCardInfo();
+                // 计算SDCard 总容量大小MB
+                info.total = nTotalBlocks * nBlocSize;
+
+                // 计算 SDCard 剩余大小MB
+                info.free = nAvailaBlock * nBlocSize;
+
+                return info;
+            } catch (IllegalArgumentException e) {
+                Log.e(LOG_TAG, e.toString());
+            }
+        }
+
+        return null;
+    }
+
+}

@@ -1,0 +1,131 @@
+package com.example.capturephoto;
+
+import java.io.File;
+import java.util.List;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.Toast;
+
+import com.nostra13.universalimageloader.cache.disc.naming.Md5FileNameGenerator;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.core.assist.FailReason;
+import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
+import com.nostra13.universalimageloader.core.assist.SimpleImageLoadingListener;
+
+public class ImageAdapter extends BaseAdapter {
+	private LayoutInflater mInflater;
+	private List<ImageInfo> list;
+	DisplayImageOptions options;
+
+	public ImageAdapter(Context c, List<ImageInfo> list) {
+		mInflater = LayoutInflater.from(c);
+		this.list = list;
+		options = new DisplayImageOptions.Builder().bitmapConfig(
+				Bitmap.Config.RGB_565).build();
+		initImageLoader(c);
+	}
+	public void initImageLoader(Context context) {
+		// This configuration tuning is custom. You can tune every option, you may tune some of them,
+		// or you can create default configuration by
+		//  ImageLoaderConfiguration.createDefault(this);
+		// method.
+		ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(context)
+				.threadPriority(Thread.NORM_PRIORITY - 2)
+				.denyCacheImageMultipleSizesInMemory()
+				.discCacheFileNameGenerator(new Md5FileNameGenerator())
+				.tasksProcessingOrder(QueueProcessingType.LIFO)
+//				.writeDebugLogs() // Remove for release app
+				.build();
+		// Initialize ImageLoader with configuration.
+		ImageLoader.getInstance().init(config);
+	}
+	public int getCount() {
+		return list.size();
+	}
+
+	public Object getItem(int position) {
+		return list.get(position);
+	}
+
+	public long getItemId(int position) {
+
+		return position;
+	}
+
+	public View getView(int position, View convertView, ViewGroup parent) {
+
+		ViewHolder holder;
+		if (convertView == null) {
+
+			convertView = mInflater.inflate(R.layout.imageview_item, null);
+
+			holder = new ViewHolder();
+			holder.imageView = (ImageView) convertView.findViewById(R.id.image);
+
+			convertView.setTag(holder);
+
+		} else {
+			holder = (ViewHolder) convertView.getTag();
+
+		}
+		// 为holder中的tv和img设置内容
+//		if (list.get(position).getBitmap() != null) {
+//			holder.imageView.setImageBitmap(list.get(position).getBitmap());
+//		} else {
+//			holder.imageView.setImageResource(R.drawable.ic_launcher);
+//		}
+
+//		ImageLoader.getInstance().displayImage(list.get(position).getImageUri(), holder.imageView, options);
+		ImageLoader.getInstance().displayImage(Uri.fromFile(new File(MainActivity.imageInfos.get(position).getFullName())).toString(),
+		        holder.imageView, options, new SimpleImageLoadingListener() {
+            @Override
+            public void onLoadingStarted(String imageUri, View view) {
+            }
+
+            @Override
+            public void onLoadingFailed(String imageUri, View view,
+                    FailReason failReason) {
+                String message = null;
+                switch (failReason.getType()) {
+                case IO_ERROR:
+                    message = "Input/Output error";
+                    break;
+                case DECODING_ERROR:
+                    message = "Image can't be decoded";
+                    break;
+                case NETWORK_DENIED:
+                    message = "Downloads are denied";
+                    break;
+                case OUT_OF_MEMORY:
+                    message = "Out Of Memory error";
+                    break;
+                case UNKNOWN:
+                    message = "Unknown error";
+                    break;
+                }
+
+            }
+
+            @Override
+            public void onLoadingComplete(String imageUri,
+                    View view, Bitmap loadedImage) {
+
+                System.err.println("onLoadingComplete" + loadedImage.getWidth() +"  " + loadedImage.getHeight());
+            
+            }});
+		return convertView;
+	}
+	
+	public class ViewHolder {
+		ImageView imageView;
+	}
+}

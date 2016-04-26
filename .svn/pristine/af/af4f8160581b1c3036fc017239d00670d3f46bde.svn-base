@@ -1,0 +1,20 @@
+package com.client.capturephoto;
+
+import android.os.Environment;
+
+public class FileUtils {
+	
+	public static final String SDCARD_ROOT_PATH = android.os.Environment
+			.getExternalStorageDirectory().getAbsolutePath();// Â·¾¶
+	
+	/**
+	 * ¼ì²é´æ´¢¿¨ÊÇ·ñ²åÈë
+	 * 
+	 * @return
+	 */
+    public static boolean isHasSdcard()
+    {
+        return Environment.getExternalStorageState()
+                .equals(Environment.MEDIA_MOUNTED);
+    }
+}

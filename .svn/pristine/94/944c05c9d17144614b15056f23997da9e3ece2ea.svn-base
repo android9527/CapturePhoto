@@ -1,0 +1,570 @@
+package com.client.capturephoto;
+
+import static com.client.capturephoto.Constant.*;
+import static com.client.capturephoto.MainActivity.imageInfos;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+
+import android.graphics.ImageFormat;
+import android.hardware.Camera;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.Size;
+import android.media.CameraProfile;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+
+public class TackPictureActivity extends BaseActivity implements
+        SurfaceHolder.Callback
+{
+    
+    private String TAG = "TackPictureActivity";// ??
+    
+    private Button btnCapture, buttonBack;
+    
+    private SurfaceHolder mSurfaceHolder;
+    
+    private SurfaceView mSurfaceView;
+    
+    private SPUtil spUtil;
+    
+    private String currentCode;
+    
+    private static final String END = ".jpg";
+    
+    @Override
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.take_picture);
+        initView();
+        spUtil = SPUtil.getInstance(TackPictureActivity.this);
+        mSurfaceHolder = mSurfaceView.getHolder();
+        mSurfaceHolder.addCallback(this);
+        currentCode = getIntent().getStringExtra(Constant.TEXT_CODE);
+        
+        if (Constant.DEBUG)
+        {
+            Log.e(TAG, "接收到code = " + currentCode);
+        }
+        // Make sure camera device is opened.
+        //        try
+        //        {
+        //            mCameraOpenThread.join();
+        //            mCameraOpenThread = null;
+        //            if (mOpenCameraFail)
+        //            {
+        //                Util.showErrorAndFinish(this, R.string.cannot_connect_camera);
+        //                return;
+        //            }
+        //            else if (mCameraDisabled)
+        //            {
+        //                Util.showErrorAndFinish(this, R.string.camera_disabled);
+        //                return;
+        //            }
+        //        }
+        //        catch (InterruptedException ex)
+        //        {
+        //            ex.printStackTrace();
+        //        }
+        
+        // Make sure preview is started.
+        //        try
+        //        {
+        //            mCameraPreviewThread.join();
+        //        }
+        //        catch (InterruptedException ex)
+        //        {
+        //            ex.printStackTrace();
+        //        }
+        //        mCameraPreviewThread = null;
+    }
+    
+    @Override
+    protected void onPause()
+    {
+        Log.e(TAG, "================== onPause()");
+        resetScreenOn();
+        super.onPause();
+    }
+    
+    @Override
+    public void onStop()
+    {
+        super.onStop();
+    }
+    
+    @Override
+    protected void onResume()
+    {
+        keepScreenOnAwhile();
+        super.onResume();
+    }
+    
+    private void stopPreview()
+    {
+        if (mCameraDevice != null)
+        {
+            Log.v(TAG, "stopPreview");
+            mCameraDevice.cancelAutoFocus(); // Reset the focus.
+            mCameraDevice.stopPreview();
+        }
+    }
+    
+    private void takeAPicture()
+    {
+        if (mCameraDevice != null)
+        {
+            /* 调用takePicture()方法拍照 */
+            mCameraDevice.takePicture(null, null, jpegCallback);// 调用PictureCallback
+        }
+    }
+    
+    private final PictureCallback jpegCallback = new PictureCallback()
+    {
+        public void onPictureTaken(byte[] _data, Camera _camera)
+        {
+            
+            // 检查SDCard是否存在
+            if (!isHasSdcard())
+            {
+                btnCapture.setEnabled(true);
+                showToast(R.string.toast_nosdcard);
+                return;
+            }
+            FileOutputStream fileOutputStream = null;
+            try
+            {
+                File myCaptureFile = new File(SDCARD_ROOT_PATH
+                        + File.separator + getString(R.string.app_name)
+                        + File.separator + currentCode + File.separator);
+                if (!myCaptureFile.exists())
+                {
+                    myCaptureFile.mkdirs();
+                }
+                
+                if (Constant.DEBUG)
+                {
+                    Log.e(TAG,
+                            "======== 路径 = " + myCaptureFile.getAbsolutePath());
+                }
+                myCaptureFile = new File(myCaptureFile.getAbsolutePath()
+                        + File.separator + currentCode + "-"
+                        + Constant.simpleDateFormat.format(System.currentTimeMillis())
+                        + END);
+                if (Constant.DEBUG)
+                {
+                    Log.e(TAG,
+                            "======== 路径 = " + myCaptureFile.getAbsolutePath());
+                }
+                fileOutputStream = new FileOutputStream(myCaptureFile);
+                fileOutputStream.write(_data);
+                ImageInfo imageInfo = new ImageInfo();
+                imageInfo.fullName = myCaptureFile.getAbsolutePath();
+                imageInfos.add(imageInfo);
+            }
+            catch (IOException e1)
+            {
+                e1.printStackTrace();
+                showToast(R.string.message_save_error);
+            }
+            finally
+            {
+                try
+                {
+                    if (fileOutputStream != null)
+                        fileOutputStream.close();
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+            btnCapture.setEnabled(true);
+            startPreview();
+            //                BufferedOutputStream bos = null;
+            //                 try
+            //                 {
+            //                 bos = new BufferedOutputStream(new FileOutputStream(
+            //                 myCaptureFile));
+            //                 bitmap.compress(CompressFormat.JPEG, 80, bos);
+            //                
+            //                 Matrix matrix = new Matrix();
+            //                 matrix.setRotate(mDisplayOrientation);
+            //                 bitmap = Bitmap
+            //                 .createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+            //                 bitmap.getHeight(), matrix, true);
+            //                 bos.close();
+            //                 bitmap.recycle();
+            //                 }
+            //                 catch (FileNotFoundException e)
+            //                 {
+            //                 e.printStackTrace();
+            //                 }
+            //                 catch (IOException e)
+            //                 {
+            //                 e.printStackTrace();
+            //                 }
+            //            }
+        }
+    };
+    
+    private void initView()
+    {
+        buttonBack = (Button) findViewById(R.id.button_back);
+        btnCapture = (Button) findViewById(R.id.takepicture);
+        /* 以SurfaceView作为相机Preview之用 */
+        mSurfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+        
+        mSurfaceHolder = mSurfaceView.getHolder();
+        mSurfaceHolder.addCallback(this);
+        mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        btnCapture.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+//                if (checkToTakePicture())
+//                {
+                    btnCapture.setEnabled(false);
+                    takeAPicture();
+//                }
+            }
+        });
+        
+        buttonBack.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                setResult(RESULT_OK);
+                TackPictureActivity.this.finish();
+            }
+        });
+    }
+    
+    private boolean checkToTakePicture()
+    {
+        int limitPosition = spUtil.getInt(LIMIT, DEFAULT_LIMIT_POSITION);
+        if (DEBUG)
+        {
+            Log.e(TAG,
+                    "图片数量限制 = " + Integer.parseInt(ARRAY_LIMIT[limitPosition]));
+        }
+        if (imageInfos.size() >= Integer.parseInt(ARRAY_LIMIT[limitPosition]))
+          {
+              showToast(R.string.message_limit);
+              return false;
+          }
+          return true;
+    }
+    
+    @Override
+    public void surfaceCreated(SurfaceHolder holder)
+    {
+        Log.e(TAG, "================== surfaceCreated");
+        openCamera();
+        setParameters(holder);
+        startPreview();
+    }
+    
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width,
+            int height)
+    {
+        Log.e(TAG, "================== surfaceChanged");
+        // Make sure we have a surface in the holder before proceeding.
+        if (holder.getSurface() == null)
+        {
+            Log.d(TAG, "holder.getSurface() == null");
+            return;
+        }
+        
+        Log.v(TAG, "surfaceChanged. w=" + width + ". h=" + height);
+        
+        // We need to save the holder for later use, even when the mCameraDevice
+        // is null. This could happen if onResume() is invoked after this
+        // function.
+        mSurfaceHolder = holder;
+        
+        // The mCameraDevice will be null if it fails to connect to the camera
+        // hardware. In this case we will show a dialog and then finish the
+        // activity, so it's OK to ignore it.
+        if (mCameraDevice == null)
+            return;
+        
+        // Set preview display if the surface is being created. Preview was
+        // already started. Also restart the preview if display rotation has
+        // changed. Sometimes this happens when the device is held in portrait
+        // and camera app is opened. Rotation animation takes some time and
+        // display rotation in onCreate may not be what we want.
+        if (CameraUtil.getDisplayRotation(this) != mDisplayRotation)
+        {
+            setDisplayOrientation();
+        }
+        startPreview();
+    }
+    
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder)
+    {
+        Log.e(TAG, "================== surfaceDestroyed");
+        stopPreview();
+        closeCamera();
+        mSurfaceHolder = null;
+    }
+    
+    private Camera mCameraDevice;
+    
+    private final CameraErrorCallback mErrorCallback = new CameraErrorCallback();
+    
+    private final AutoFocusCallback mAutoFocusCallback = new AutoFocusCallback();
+    
+    private Camera.Parameters mParameters;
+    
+    
+    /**
+     * 设置Camera 参数
+     * @param mSurfaceHolder
+     */
+    private void setParameters(SurfaceHolder mSurfaceHolder)
+    {
+        mCameraDevice.setErrorCallback(mErrorCallback);
+        
+        // If we're previewing already, stop the preview first (this will blank
+        // the screen).
+        setPreviewDisplay(mSurfaceHolder);
+        setDisplayOrientation();
+        
+        setCameraParameters();
+        // If the focus mode is continuous autofocus, call cancelAutoFocus to
+        // resume it because it may have been paused by autoFocus call.
+        //        if (Parameters.FOCUS_MODE_CONTINUOUS_PICTURE.equals(mParameters.getFocusMode()))
+        //        {
+        //            mCameraDevice.cancelAutoFocus();
+        //        }
+        
+    }
+    
+    
+    /**
+     * 开始预览
+     */
+    private void startPreview()
+    {
+        try
+        {
+            Log.v(TAG, "startPreview");
+            mCameraDevice.startPreview();
+            if (isSupportAutoFocus)
+            {
+                mCameraDevice.autoFocus(mAutoFocusCallback);
+            }
+        }
+        catch (Throwable ex)
+        {
+            closeCamera();
+            throw new RuntimeException("startPreview failed", ex);
+        }
+    }
+    
+    /**
+     * 自动聚焦
+     * @author Administrator
+     *
+     */
+    private final class AutoFocusCallback implements
+            android.hardware.Camera.AutoFocusCallback
+    {
+        public void onAutoFocus(boolean focused, android.hardware.Camera camera)
+        {
+            if (focused)
+                Log.e(TAG, "android.hardware.Camera camera 聚焦");
+            else{
+                mCameraDevice.autoFocus(mAutoFocusCallback);
+                Log.e(TAG, "android.hardware.Camera camera 非聚焦");
+            }
+        }
+    }
+    
+    private void setCameraParameters()
+    {
+        mParameters = mCameraDevice.getParameters();
+        updateCameraParametersPreference();
+        
+        mCameraDevice.setParameters(mParameters);
+    }
+
+    private boolean isSupportAutoFocus;
+    private void updateCameraParametersPreference()
+    {
+        mParameters.setPictureFormat(ImageFormat.JPEG);
+        mParameters.setRotation(mDisplayOrientation);
+        
+        List<String> focusModes = mParameters.getSupportedFocusModes();
+        /**
+         * 是否支持自动聚焦
+         */
+        if (focusModes != null && focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
+        {
+            isSupportAutoFocus = true;
+            mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        }
+        //                mParameters.setPictureSize(3264,2448);
+        // Set picture size.
+        //                String pictureSize = mPreferences.getString(
+        //                        CameraSettings.KEY_PICTURE_SIZE, null);
+        //                if (pictureSize == null) {
+        
+        int width = spUtil.getInt(Constant.PICTURE_WIDTH, 0);
+        int height = spUtil.getInt(Constant.PICTURE_HEIGHT, 0);
+        if (width == 0 || height == 0)
+        {
+            CameraSettings.initialCameraPictureSize(this, mParameters);
+            Size size = mParameters.getPictureSize();
+            spUtil.save(Constant.PICTURE_WIDTH,
+                    Math.min(size.width, size.height));
+            spUtil.save(Constant.PICTURE_HEIGHT,
+                    Math.max(size.width, size.height));
+        }
+        else
+        {
+            mParameters.setPictureSize(Math.max(width, height),
+                    Math.min(width, height));
+        }
+        //                } else {
+        //                    List<Size> supported = mParameters.getSupportedPictureSizes();
+        //                    setCameraPictureSize(
+        //                            pictureSize, supported, mParameters);
+        //                }
+        
+        //        // Set the preview frame aspect ratio according to the picture size.
+        Size size = mParameters.getPictureSize();
+        
+        Log.e(TAG, "size.width = " + size.width + "  size.height = "
+                + size.height);
+//        //        // Set a preview size that is closest to the viewfinder height and has
+//        //        // the right aspect ratio.
+//                List<Size> sizes = mParameters.getSupportedPreviewSizes();
+//                Size optimalSize = CameraUtil.getOptimalPreviewSize(this,
+//                        sizes, (double) size.width / size.height);
+//                Size original = mParameters.getPreviewSize();
+//                if (!original.equals(optimalSize)) {
+//                    mParameters.setPreviewSize(optimalSize.width, optimalSize.height);
+//        
+//                    // Zoom related settings will be changed for different preview
+//                    // sizes, so set and read the parameters to get lastest values
+//                    mCameraDevice.setParameters(mParameters);
+//                    mParameters = mCameraDevice.getParameters();
+//                }
+//                Log.v(TAG, "Preview size is " + optimalSize.width + "x" + optimalSize.height);
+        //
+        //
+        //        // Set JPEG quality.
+        int jpegQuality = CameraProfile.getJpegEncodingQualityParameter(CameraProfile.QUALITY_HIGH);
+        mParameters.setJpegQuality(jpegQuality);
+    }
+    
+    // The display rotation in degrees. This is only valid when mCameraState is
+    // not PREVIEW_STOPPED.
+    private int mDisplayRotation;
+    
+    // The value for android.hardware.Camera.setDisplayOrientation.
+    private int mDisplayOrientation = 90;
+    
+    private void setDisplayOrientation()
+    {
+        mDisplayRotation = CameraUtil.getDisplayRotation(this);
+//        mDisplayOrientation = CameraUtil.getDisplayOrientation(mDisplayRotation);
+        mCameraDevice.setDisplayOrientation(mDisplayOrientation);
+    }
+    
+    private void setPreviewDisplay(SurfaceHolder holder)
+    {
+        try
+        {
+            mCameraDevice.setPreviewDisplay(holder);
+        }
+        catch (Throwable ex)
+        {
+            closeCamera();
+            throw new RuntimeException("setPreviewDisplay failed", ex);
+        }
+    }
+
+    /**
+     * 屏幕长亮
+     */
+    private void keepScreenOnAwhile()
+    {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+    
+    
+    private void resetScreenOn()
+    {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+    
+    /**
+     * 释放相机
+     * Close the camera now because other activities may need to use it.
+     */
+    private void closeCamera()
+    {
+        if (mCameraDevice != null)
+        {
+            CameraHolder.instance().release();
+            //            mCameraDevice.setZoomChangeListener(null);
+            //            mCameraDevice.setFaceDetectionListener(null);
+            //            mCameraDevice.setErrorCallback(null);
+            mCameraDevice = null;
+        }
+    }
+    
+    /**
+     * 打开摄像头
+     */
+    private void openCamera()
+    {
+        Log.e(TAG, "================= open doOnResume()");
+        
+        // Start the preview if it is not started.
+        try
+        {
+            mCameraDevice = CameraUtil.openCamera(this);
+        }
+        catch (CameraHardwareException e)
+        {
+            CameraUtil.showErrorAndFinish(this, R.string.cannot_connect_camera);
+            return;
+        }
+        catch (CameraDisabledException e)
+        {
+            CameraUtil.showErrorAndFinish(this, R.string.camera_disabled);
+            return;
+        }
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+    {
+        switch (keyCode)
+        {
+            case KeyEvent.KEYCODE_BACK:
+                setResult(RESULT_OK);
+                TackPictureActivity.this.finish();
+                break;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+    
+}

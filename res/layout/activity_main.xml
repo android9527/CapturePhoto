@@ -1,0 +1,147 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+    <LinearLayout
+        android:id="@+id/bottomView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#999999"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal" >
+
+        <LinearLayout
+            android:id="@+id/ll_defaultview"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/vertical_margin"
+            android:layout_marginLeft="@dimen/horizontal_margin"
+            android:layout_marginRight="@dimen/horizontal_margin"
+            android:layout_marginTop="@dimen/vertical_margin"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal" >
+
+            <Button
+                android:id="@+id/btn_pz"
+                android:layout_width="0dip"
+                android:layout_height="40.0dp"
+                android:layout_weight="1"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_capture" />
+
+            <Button
+                android:id="@+id/btn_upload"
+                android:layout_width="0dip"
+                android:layout_height="40.0dp"
+                android:layout_marginLeft="8.0dip"
+                android:layout_weight="1"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_upload" />
+
+            <Button
+                android:id="@+id/btn_multi_choice"
+                android:layout_width="0dip"
+                android:layout_height="40.0dp"
+                android:layout_marginLeft="8.0dip"
+                android:layout_weight="1"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_multi_choice" />
+
+            <Button
+                android:id="@+id/btn_config"
+                android:layout_width="0dip"
+                android:layout_height="40.0dp"
+                android:layout_marginLeft="8.0dip"
+                android:layout_weight="1"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_setting" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_deleteview"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/vertical_margin"
+            android:layout_marginLeft="@dimen/horizontal_margin"
+            android:layout_marginRight="@dimen/horizontal_margin"
+            android:layout_marginTop="@dimen/vertical_margin"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:visibility="gone" >
+
+            <Button
+                android:id="@+id/btn_delete"
+                android:layout_width="90.0dip"
+                android:layout_height="40.0dp"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_delete" />
+
+            <Button
+                android:id="@+id/btn_return"
+                android:layout_width="90.0dip"
+                android:layout_height="40.0dp"
+                android:layout_marginLeft="50.0dip"
+                android:background="@drawable/login_btn_selector"
+                android:text="@string/button_return" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/headView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="#999999"
+        android:orientation="vertical" >
+
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/horizontal_margin"
+            android:layout_marginRight="@dimen/horizontal_margin"
+            android:layout_marginTop="@dimen/vertical_margin" >
+
+            <Button
+                android:id="@+id/button_code"
+                android:layout_width="wrap_content"
+                android:layout_height="43dp"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="@dimen/horizontal_margin"
+                android:background="@drawable/button_code_icon"
+                android:gravity="center_vertical" />
+
+            <EditText
+                android:id="@+id/edittext_code"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="3dp"
+                android:layout_toLeftOf="@id/button_code" />
+        </RelativeLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_above="@id/bottomView"
+        android:layout_below="@id/headView"
+        android:background="#CCCCCC"
+        android:orientation="vertical" >
+
+        <GridView
+            android:id="@+id/gridview"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="@dimen/horizontal_margin"
+            android:layout_marginRight="@dimen/horizontal_margin"
+            android:cacheColorHint="#00000000"
+            android:fastScrollEnabled="false"
+            android:horizontalSpacing="@dimen/grid_Spacing"
+            android:listSelector="@android:color/transparent"
+            android:numColumns="3"
+            android:stretchMode="columnWidth"
+            android:verticalSpacing="@dimen/grid_Spacing" />
+    </LinearLayout>
+
+</RelativeLayout>
